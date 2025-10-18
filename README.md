@@ -1,36 +1,45 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
-
 ## Getting Started
 
 First, run the development server:
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+pnpm install
+pnpm run dev
 ```
 
 Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## FSD Architecture
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
-
-## Learn More
-
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+src/
+├─ app/
+│ ├─ (main)/ # 주요 라우트 (Landing, Game, DAO 등)
+│ │ ├─ page.tsx
+│ │ └─ layout.tsx
+│ ├─ api/ # Next.js Route Handlers (server actions)
+│ │ ├─ reward/
+│ │ │ ├─ route.ts # /api/reward → 리워드 검증/정산
+│ │ └─ user/
+│ │ └─ route.ts # /api/user → 지갑 연동, 프로필 등
+│ ├─ layout.tsx
+│ └─ globals.css
+│
+├─ shared/ # 전역 재사용 가능 요소 (가장 하위 레벨)
+│ ├─ ui/ # 버튼, 모달, 카드 등 shadcn 컴포넌트
+│ ├─ config/ # wagmi, RainbowKit 설정 등
+│ ├─ lib/ # viem client, utils, constants
+│ ├─ types/ # 전역 타입 선언
+│ └─ styles/ # tailwind presets, themes
+│
+├─ entities/ # 핵심 도메인 단위 (user, reward, game 등)
+│ ├─ user/
+│ │ ├─ model/ # zustand store (useAuthStore 등)
+│ │ ├─ lib/ # user 관련 utils, formatters
+│ │ ├─ api/ # user API (login, profile 등)
+│ │ └─ ui/ # avatar, wallet connect button 등
+│ ├─ reward/
+│ │ ├─ model/ # reward 상태, refresh 로직
+│ │ ├─ lib/ # 보상 계산 함수 (risk curve 등)
+│ │ ├─ api/ # /api/reward 연결
+│ │ └─ ui/ # reward gauge, toast 등
+│ └─ game/
