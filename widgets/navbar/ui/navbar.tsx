@@ -1,6 +1,6 @@
 "use client";
-import { useAuthStore } from "@/entities/user/model/useAuthStore";
-import { ConnectButton } from "@rainbow-me/rainbowkit";
+import { useAuthStore } from "@/shared/store";
+// import { ConnectButton } from "@rainbow-me/rainbowkit";
 import { useState } from "react";
 export const Navbar = () => {
   const userToken = useAuthStore((state) => state.token);

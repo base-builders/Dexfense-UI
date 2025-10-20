@@ -1,15 +1,17 @@
 import { useRef, useLayoutEffect, useEffect, useState } from "react";
-import { Preloader } from "@/features/game-core/lib/scenes/preloader";
+import { Preloader, MainMenu, TypedRegistry } from "@/features/game-core";
 import Phaser, { AUTO, Game } from "phaser";
 import { EventBus } from "@/features/game-core/lib/event-bus";
 import Image from "next/image";
+import { LoginModal } from "@/widgets";
+import { useModalStore } from "@/shared";
 
 const config: Phaser.Types.Core.GameConfig = {
   type: AUTO,
   width: 900,
   height: 580,
   backgroundColor: "#028af8",
-  scene: [Preloader],
+  scene: [Preloader, MainMenu],
   physics: {
     default: "arcade",
     arcade: {
@@ -28,12 +30,13 @@ const bootGame = (parent: HTMLElement) => {
     parent,
     callbacks: {
       preBoot: (game) => {
-        window.phaserGame = game; // ✅ 전역에 저장
+        window.phaserGame = game;
       },
     },
   };
-
-  return new Game(gameConfig);
+  const game = new Phaser.Game(gameConfig);
+  (game as any).typedRegistry = new TypedRegistry(game.registry);
+  return game;
 };
 
 export const PhaserGame = () => {
@@ -41,6 +44,7 @@ export const PhaserGame = () => {
   const gameRef = useRef<Phaser.Game | null>(null);
 
   const [isPhaserLoading, setIsPhaserLoading] = useState(true);
+  const { showLoginModal, setShowLoginModal } = useModalStore();
   useLayoutEffect(() => {
     if (!containerRef.current || gameRef.current) return;
 
@@ -78,6 +82,9 @@ export const PhaserGame = () => {
             height={100}
           />
         </div>
+      )}
+      {showLoginModal && (
+        <LoginModal onClose={() => setShowLoginModal(false)} />
       )}
       <div
         ref={containerRef}
