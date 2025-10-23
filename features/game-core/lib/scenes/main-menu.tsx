@@ -8,7 +8,7 @@ export class MainMenu extends Scene {
   }
 
   create() {
-    createPlatforms(this);
+    createPlatforms.call(this);
     this.add
       .text(this.scale.width / 2, 400, "LOGIN TO START", {
         fontFamily: '"Press Start 2P"',
