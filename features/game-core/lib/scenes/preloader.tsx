@@ -1,5 +1,6 @@
 import { Scene } from "phaser";
 import { EventBus } from "../event-bus";
+import { useAuthStore } from "@/shared";
 export class Preloader extends Scene {
   constructor() {
     super({ key: "Preloader" });
@@ -79,7 +80,14 @@ export class Preloader extends Scene {
 
     this.load.on("complete", () => {
       EventBus.emit("assets-loaded");
-      this.scene.start("MainMenu");
+      const accessToken = useAuthStore.getState().token;
+      if (accessToken) {
+        this.scene.start("PoolList");
+        console.log("✅ Access token found in Zustand store.");
+      } else {
+        this.scene.start("MainMenu");
+        console.log("ℹ️ No access token found in Zustand store.");
+      }
     });
   }
 }

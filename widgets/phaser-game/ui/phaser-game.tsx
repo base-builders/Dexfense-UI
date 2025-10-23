@@ -1,5 +1,10 @@
 import { useRef, useLayoutEffect, useEffect, useState } from "react";
-import { Preloader, MainMenu, TypedRegistry } from "@/features/game-core";
+import {
+  Preloader,
+  MainMenu,
+  TypedRegistry,
+  PoolList,
+} from "@/features/game-core";
 import Phaser, { AUTO, Game } from "phaser";
 import { EventBus } from "@/features/game-core/lib/event-bus";
 import Image from "next/image";
@@ -11,7 +16,7 @@ const config: Phaser.Types.Core.GameConfig = {
   width: 900,
   height: 580,
   backgroundColor: "#028af8",
-  scene: [Preloader, MainMenu],
+  scene: [Preloader, MainMenu, PoolList],
   physics: {
     default: "arcade",
     arcade: {

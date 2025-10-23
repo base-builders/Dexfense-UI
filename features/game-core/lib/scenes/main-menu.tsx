@@ -1,5 +1,5 @@
 import { Scene } from "phaser";
-import { EventBus, GameRegistry } from "@/features/game-core/lib";
+import { createPlatforms, GameRegistry } from "@/features/game-core/lib";
 import { useModalStore } from "@/shared";
 
 export class MainMenu extends Scene {
@@ -7,15 +7,8 @@ export class MainMenu extends Scene {
     super({ key: "MainMenu" });
   }
 
-  preload() {
-    // Load assets for the main menu
-  }
-
   create() {
-    // Create the main menu UI
-    this.physics.add.staticImage(450, 550, "ground").setDepth(1);
-    this.physics.add.staticImage(140, 356, "fortress").setDepth(2);
-
+    createPlatforms(this);
     this.add
       .text(this.scale.width / 2, 400, "LOGIN TO START", {
         fontFamily: '"Press Start 2P"',

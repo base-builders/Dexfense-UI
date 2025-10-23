@@ -1,2 +1,2 @@
-export { useAuthStore, useModalStore } from "./store";
+export * from "./store";
 export { decodeJwt } from "./utils";
