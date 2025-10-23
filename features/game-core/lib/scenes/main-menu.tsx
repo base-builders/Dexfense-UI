@@ -1,6 +1,6 @@
 import { Scene } from "phaser";
 import { createPlatforms, GameRegistry } from "@/features/game-core/lib";
-import { useModalStore } from "@/shared";
+import { useAuthStore, useModalStore } from "@/shared";
 
 export class MainMenu extends Scene {
   constructor() {
@@ -8,6 +8,19 @@ export class MainMenu extends Scene {
   }
 
   create() {
+    const unsubscribe = useAuthStore.subscribe(
+      (state) => state.address,
+      (address) => {
+        if (address) {
+          console.log("👤 Logged in:", address);
+          this.scene.start("PoolList");
+        }
+      }
+    );
+
+    // 씬 종료 시 구독 해제
+    this.events.once("shutdown", unsubscribe);
+    this.events.once("destroy", unsubscribe);
     createPlatforms.call(this);
     this.add
       .text(this.scale.width / 2, 400, "LOGIN TO START", {
@@ -47,19 +60,6 @@ export class MainMenu extends Scene {
       })
       .setOrigin(0.5)
       .setDepth(100);
-
-    this.game.registry.events.once(
-      "changedata-user",
-      (_parent: unknown, value: GameRegistry["user"]) => {
-        console.log("✅ User changed:", value);
-
-        const user = this.game.registry.get("user") as GameRegistry["user"];
-        if (user?.address) {
-          console.log("👤 Logged in user:", user.address);
-          this.scene.start("PoolList");
-        }
-      }
-    );
   }
 
   update() {

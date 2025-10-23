@@ -10,3 +10,10 @@ export interface RatioData {
   fee: number;
   poolId: number;
 }
+
+export interface StartGameData {
+  message: string;
+  data: {
+    gameId: number;
+  };
+}

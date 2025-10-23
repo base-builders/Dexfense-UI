@@ -1,5 +1,5 @@
 import { create } from "zustand";
-import { persist } from "zustand/middleware";
+import { persist, subscribeWithSelector } from "zustand/middleware";
 interface AuthState {
   address: string | null;
   token: string | null;
@@ -8,8 +8,8 @@ interface AuthState {
 }
 
 export const useAuthStore = create(
-  persist<AuthState>(
-    (set) => ({
+  persist(
+    subscribeWithSelector<AuthState>((set) => ({
       address: null,
       token: null,
       setAuth: (address: string, token: string) => {
@@ -18,7 +18,7 @@ export const useAuthStore = create(
       clearAuth: () => {
         set({ address: null, token: null });
       },
-    }),
+    })),
     {
       name: "auth-storage",
     }

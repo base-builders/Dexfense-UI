@@ -1,6 +1,8 @@
 import Phaser from "phaser";
-import { PoolList } from "./scenes";
+import { MainGame, PoolList } from "./scenes";
 import { useGameStore } from "@/shared";
+import { difficultyConfig } from "./constants";
+import { Difficulty } from "./types";
 
 export function createDifficultyButtons(this: PoolList, baseY: number) {
   const container = this.add
@@ -212,9 +214,9 @@ export function createPoolCard(this: PoolList) {
 }
 
 export function showNotification(
-  this: PoolList,
+  this: PoolList | MainGame,
   message: string,
-  displayDuration: number
+  displayDuration: number = 4000
 ) {
   this.swapMessage.setText(message).setVisible(true);
 
@@ -223,4 +225,586 @@ export function showNotification(
   this.notificationTimer = this.time.delayedCall(displayDuration, () => {
     this.swapMessage.setVisible(false);
   });
+}
+
+export function initMainGameState(this: MainGame) {
+  const config = difficultyConfig[this.difficulty as Difficulty];
+  let maxSpan: number;
+  switch (this.difficulty) {
+    case "easy":
+      maxSpan = 20;
+      break;
+    case "normal":
+      maxSpan = 25;
+      break;
+    case "hard":
+      maxSpan = 30;
+      break;
+    default:
+      maxSpan = 20;
+  }
+  this.maxSpawn = maxSpan;
+  this.TotalToken2Count = maxSpan * 25;
+
+  this.entryFee = config.entryFee;
+
+  this.selected = [];
+  this.information = [];
+  this.onHistory = false;
+  this.onInformation = false;
+
+  this.totalEarn = 0;
+
+  // 게임 상태
+  this.hpMultiplier = config.hpMultiplier;
+  this.castleHP = 100;
+  this.castleMaxHP = 100;
+  this.waveCount = 1;
+  this.killCount = 0;
+  this.unitCount = 0;
+  this.waveTotalDamage = 0;
+  this.bossAlive = false;
+  this.bossResistAppliedTypes = [];
+  this.maxSpawn = config.maxSpawn;
+
+  // 전투 기본 수치
+  this.physFlat = 0;
+  this.physPercent = 0;
+  this.fireFlat = 0;
+  this.firePercent = 0;
+  this.poisonFlat = 0;
+  this.poisonPercent = 0;
+  this.iceFlat = 0;
+  this.icePercent = 0;
+  this.lightningFlat = 0;
+  this.lightningPercent = 0;
+  this.multiplier = 1;
+  this.attackSpeed = 1;
+  this.critChance = 0;
+  this.executionCap = 0;
+
+  // 전투 보정 계수
+  this.lightningAmp = 1.1;
+  this.iceSlowFactor = 1.0;
+  this.poisonDuration = 2000;
+  this.fireAmp = 0.8;
+  this.physMultiplier = 0.1;
+  this.poisonChance = 0.7;
+
+  // 아이스존 관련
+  this.iceZoneWidth = 50;
+  this.iceZoneLength = 6;
+  this.iceZoneDuration = 3000;
+
+  //awaken
+  this.awakened = {
+    phys: false,
+    fire: false,
+    lightning: false,
+    poison: false,
+    ice: false,
+  };
+  this.physStack = 0;
+  this.fireCorpseExplosion = 0;
+  this.lightningChain = 0;
+  this.lightningShockDuration = 0;
+  this.poisonRadius = 0;
+  this.poisonHealBlock = false;
+  this.iceFreezChance = 0.5;
+  this.iceFreezeDuration = 500;
+
+  // 난이도에 따른 스탯 적용
+  this.globalSpeed = config.globalSpeed;
+  this.globalResistTypes = {
+    phys: config.resist,
+    fire: config.resist,
+    poison: config.resist,
+    ice: config.resist,
+    lightning: config.resist,
+  };
+
+  // 보스 버프 관련
+  this.globalSpeedBuff = 1.0;
+  this.bossSpeedBuff = 1;
+  this.bossResistBuff = 0.2;
+
+  // 타이머 및 이펙트 정리
+  this.token2SpawnTimer?.remove();
+  this.waveTimer?.remove();
+  this.autoShootTimer?.remove();
+  this.notificationTimer?.remove();
+
+  this.iceZones.forEach((z) => z.destroy());
+  this.iceZones = [];
+  this.damageLogs.forEach((l) => l.destroy());
+  this.damageLogs = [];
+}
+
+export function addButton(
+  this: Phaser.Scene,
+  {
+    x,
+    y,
+    title,
+    style,
+  }: // cb,
+  {
+    x: number;
+    y: number;
+    title: string;
+    style?: Phaser.Types.GameObjects.Text.TextStyle;
+    // cb: () => void;
+  }
+) {
+  const button = this.add
+    .text(x, y, title, {
+      fontSize: "16px",
+      color: "#ffffff",
+      fontFamily: '"Press Start 2P"',
+      padding: { left: 15, right: 15, top: 8, bottom: 8 },
+      align: "center",
+      ...style,
+    })
+    .setOrigin(1, 1) // 오른쪽 아래 정렬
+    .setDepth(110)
+    .setAlpha(0.8)
+    .setInteractive({ useHandCursor: true });
+  return button;
+  // button.on("pointerdown", cb);
+}
+
+export function showHistory(this: MainGame) {
+  this.pauseGame();
+  if (this.onHistory || this.onInformation) return;
+  this.onHistory = true;
+  const infoTexts: Phaser.GameObjects.Text[] = [];
+  const { width, height } = this.scale;
+  const overlay = this.add
+    .rectangle(width / 2, height / 2, width, height, 0x000000, 0.75)
+    .setDepth(300);
+  if (this.selected.length > 0) {
+    // eslint-disable-next-line @typescript-eslint/no-unused-expressions
+    infoTexts;
+    const half = Math.ceil(this.selected.length / 2);
+
+    this.selected.forEach((text, index) => {
+      const isLeft = index < half;
+      const x = isLeft ? 50 : 450; // 왼쪽/오른쪽 열
+      const y = 100 + (index % half) * 26;
+
+      const infoText = this.add
+        .text(x, y, text, {
+          color: "#ffffff",
+          fontSize: "12px",
+          fontFamily: '"Press Start 2P"',
+          align: "left",
+        })
+        .setOrigin(0, 0)
+        .setDepth(302);
+
+      infoTexts.push(infoText);
+    });
+  }
+  const closeButton = this.add
+    .text(width / 2, 550, "CLOSE", {
+      fontSize: "24px",
+      color: "#ffffff",
+      // backgroundColor: '#000000',
+      fontFamily: '"PRESS START 2P"',
+      padding: { left: 20, right: 20, top: 10, bottom: 10 },
+      align: "center",
+    })
+    .setOrigin(0.5)
+    .setDepth(302)
+    .setInteractive({ useHandCursor: true });
+
+  closeButton.on("pointerdown", () => {
+    overlay.destroy();
+    if (this.selected.length > 0) infoTexts.forEach((t) => t.destroy());
+    closeButton.destroy();
+    this.onHistory = false;
+    this.time.paused = false;
+    this.physics.world.resume();
+  });
+}
+
+export function showInformation(this: MainGame) {
+  this.pauseGame();
+  if (this.onInformation || this.onHistory) return;
+  this.onInformation = true;
+
+  const overlay = this.add
+    .rectangle(
+      this.viewportWidth / 2,
+      this.viewportHeight / 2,
+      1024,
+      682,
+      0x000000,
+      0.75
+    )
+    .setDepth(300);
+
+  const infoTexts: Phaser.GameObjects.Text[] = [];
+
+  const infoList = [
+    `🗡️ Physical Flat: ${this.physFlat}`,
+    `🗡️ Physical %: ${(this.physPercent * 100).toFixed(1)}% `,
+    `🗡️ Physical Awakend: ${this.awakened.phys} `,
+    `🗡️ Phys Multiplier: x${this.physMultiplier.toFixed(2)} `,
+    `🗡️ Phys Stack: ${this.physStack} `,
+    `🔥 Fire Awakend: ${this.awakened.fire} `,
+    `🔥 Fire Flat: ${this.fireFlat} `,
+    `🔥 Fire AOE Amp: ${this.fireAmp} `,
+    `🔥 Fire Corpse Explosion: ${this.fireCorpseExplosion * 100}% `,
+    `🔥 Fire %: ${(this.firePercent * 100).toFixed(1)}% `,
+    `🔥 Execution Cap: ${(this.executionCap * 100).toFixed(1)}% `,
+    `☠️ Poison Awakend: ${this.awakened.poison} `,
+    `☠️ Poison Flat: ${this.poisonFlat} `,
+    `☠️ Poison %: ${(this.poisonPercent * 100).toFixed(1)}% `,
+    `☠️ Poison Accelated: ${this.awakened.poison ? "x2" : "x1"} `,
+    `☠️ Poison Radius: ${this.poisonRadius} `,
+    `☠️ Poison Heal Block: ${this.awakened.poison ? "Yes" : "No"} `,
+    `☠️ Poison Chance: ${(this.poisonChance * 100).toFixed(1)}% `,
+    `☠️ Poison Duration: ${(this.poisonDuration / 1000).toFixed(1)} s`,
+    `❄️ Ice Awakend: ${this.awakened.ice} `,
+    `❄️ Ice Flat: ${this.iceFlat} `,
+    `❄️ Ice %: ${(this.icePercent * 100).toFixed(1)}% `,
+    `❄️ Ice Slow Factor: ${Math.round((1 - this.iceSlowFactor) * 100)}% `,
+    `❄️ Ice Freez Chance: ${(this.iceFreezChance * 100).toFixed(1)}% `,
+    `❄️ Ice Freez Duration: ${(this.iceFreezeDuration / 1000).toFixed(1)} s`,
+    `⚡ Lightning Awakend: ${this.awakened.lightning} `,
+    `⚡ Lightning Flat: ${this.lightningFlat} `,
+    `⚡ Lightning %: ${(this.lightningPercent * 100).toFixed(1)}% `,
+    `⚡ Lightning Amp: x${this.lightningAmp.toFixed(2)} `,
+    `⚡ Lightning Chain: ${this.lightningChain + 6} `,
+    `⚡ Lightning Shock Duration: ${(
+      (this.lightningShockDuration + 1000) /
+      1000
+    ).toFixed(1)} s`,
+    `💥 Multiplier: x${this.multiplier.toFixed(2)} `,
+    `🏹 Attack Speed: x${this.attackSpeed.toFixed(2)} `,
+    `🎯 Crit Chance: ${(this.critChance * 100).toFixed(1)}% `,
+  ];
+
+  const half = Math.ceil(infoList.length / 2);
+
+  infoList.forEach((text, index) => {
+    const isLeft = index < half;
+    const x = isLeft ? 50 : 450; // 왼쪽/오른쪽 열
+    const y = 100 + (index % half) * 26;
+
+    const infoText = this.add
+      .text(x, y, text, {
+        fontSize: "18px",
+        color: "#ffffff",
+        fontFamily: "Arial Black",
+        align: "left",
+      })
+      .setOrigin(0, 0)
+      .setDepth(302);
+
+    infoTexts.push(infoText);
+  });
+
+  const closeButton = this.add
+    .text(this.viewportWidth / 2, 550, "CLOSE", {
+      fontSize: "24px",
+      color: "#ffffff",
+      fontFamily: '"PRESS START 2P"',
+      padding: { left: 20, right: 20, top: 10, bottom: 10 },
+      align: "center",
+    })
+    .setOrigin(0.5)
+    .setDepth(302)
+    .setInteractive({ useHandCursor: true });
+
+  closeButton.on("pointerdown", () => {
+    overlay.destroy();
+    infoTexts.forEach((t) => t.destroy());
+    closeButton.destroy();
+    this.onInformation = false;
+    this.time.paused = false;
+    this.physics.world.resume();
+  });
+}
+
+export function addText(
+  this: Phaser.Scene,
+  {
+    x,
+    y,
+    text,
+    style,
+    origin = { x: 0.5, y: 0.5 },
+    depth = 10,
+  }: {
+    x: number;
+    y: number;
+    text: string;
+    style?: Phaser.Types.GameObjects.Text.TextStyle;
+    origin?: { x: number; y: number };
+    depth?: number;
+  }
+) {
+  return this.add
+    .text(x, y, text, {
+      fontFamily: '"Press Start 2P"',
+      fontSize: "24px",
+      color: "#FFFFFF",
+      ...style,
+    })
+    .setOrigin(origin.x, origin.y)
+    .setDepth(depth);
+}
+
+function nextIceSlowFactor(before: number) {
+  if (Math.round(before) > 0.4) {
+    const after = before - 0.1;
+    if (Math.round(after * 10) === 4) {
+      return `Slow rate 60% (MAX)`;
+    } else {
+      return `Movement speed reduced by  ${Math.round((1 - after) * 100)}%`;
+    }
+  } else {
+    return `Slow rate 60% (MAX)`;
+  }
+}
+
+export function getAllChoices(game: MainGame) {
+  const waveScale = game.waveCount;
+  const iceSlowFactor = nextIceSlowFactor(game.iceSlowFactor);
+  return [
+    {
+      label: `🗡️ +${10 + 6 * waveScale} Physical Flat Damage`,
+      description: `Each hit stacks bonus physical damage taken.`,
+      apply: () => {
+        game.physFlat += 10 + 6 * waveScale;
+        game.physMultiplier += 0.05;
+        game.attackSpeed += 5 / 100;
+        game.startAutoShootTimer();
+      },
+      factor: `Multiplier, stack, and attack speed +5%`,
+    },
+    {
+      label: `🔥 +${10 + 5 * waveScale} Fire Flat Damage`,
+      description: `Deals AoE damage on impact. Executes enemies under 5% HP.`,
+      apply: () => {
+        game.fireFlat += 10 + 5 * waveScale;
+        game.fireAmp += 0.05;
+        game.fireAmp = Math.round(game.fireAmp);
+        if (Math.round(game.executionCap * 100) / 100 < 0.8) {
+          game.executionCap += game.executionCap === 0 ? 0.04 : 0.01;
+        } else {
+          game.executionCap = 0.08;
+        }
+      },
+      factor: `${Math.round(
+        game.fireAmp * 100
+      )}% AoE damage, +1% execution cap (Max 8%)`,
+    },
+    {
+      label: `☠️ +${10 + 5 * waveScale} Poison Flat Damage`,
+      description: `Deals damage over time in an area.`,
+      apply: () => {
+        game.poisonFlat += 10 + waveScale * 5;
+        if (game.poisonChance < 1) {
+          game.poisonChance += 0.1;
+        } else {
+          game.poisonDuration += 500;
+        }
+      },
+      factor:
+        game.poisonChance < 1 ? `Poison chance +10%` : `Poison duration +0.5s`,
+    },
+    {
+      label: `❄️ +${10 + 5 * waveScale} Ice Flat Damage`,
+      description: `Slows enemies within a zone.`,
+      apply: () => {
+        game.iceFlat += 10 + 5 * waveScale;
+        if (Math.round(game.iceSlowFactor) > 0.4) {
+          game.iceSlowFactor -= 0.1;
+          if (Math.round(game.iceSlowFactor * 10) === 4) {
+            game.iceSlowFactor = 0.4;
+          }
+        } else game.iceSlowFactor = 0.4;
+      },
+      factor: iceSlowFactor,
+    },
+    {
+      label: `⚡ +${10 + 5 * waveScale} Lightning Flat Damage`,
+      description: `Makes enemies take increased damage.`,
+      apply: () => {
+        game.lightningFlat += 10 + 5 * waveScale;
+        game.lightningAmp += 0.05;
+      },
+      factor: `Shock effect +5%, chain targets: ${6 + game.lightningChain}`,
+    },
+    {
+      label: `🗡️ +${20 + 6 * waveScale}% Physical Damage`,
+      description: `Increases physical damage dealt.`,
+      apply: () => {
+        if (game.physFlat <= 0) game.physFlat += 5;
+        game.physPercent += (20 + 6 * waveScale) / 100;
+        game.physMultiplier += 0.05;
+        game.attackSpeed += 5 / 100;
+        game.startAutoShootTimer();
+      },
+      factor: `Multiplier, stack, and attack speed +5%`,
+    },
+    {
+      label: `🔥 +${20 + 6 * waveScale}% Fire Damage`,
+      description: `Increases fire AoE damage.`,
+      apply: () => {
+        if (game.fireFlat <= 0) game.fireFlat += 5;
+        game.firePercent += (20 + 6 * waveScale) / 100;
+        game.fireAmp += 0.05;
+        game.fireAmp = Math.round(game.fireAmp);
+        if (Math.round(game.executionCap * 100) / 100 < 0.8) {
+          game.executionCap += game.executionCap === 0 ? 0.04 : 0.01;
+        } else {
+          game.executionCap = 0.08;
+        }
+      },
+      factor: `${Math.round(
+        game.fireAmp * 100
+      )}% AoE damage, +1% execution cap (Max 8%)`,
+    },
+    {
+      label: `☠️ +${20 + 6 * waveScale}% Poison Damage`,
+      description: `Increases poison tick damage.`,
+      apply: () => {
+        if (game.poisonFlat <= 0) game.poisonFlat += 5;
+        game.poisonPercent += (20 + 2 * waveScale) / 100;
+        if (game.poisonChance < 1) {
+          game.poisonChance += 0.1;
+        } else {
+          game.poisonDuration += 500;
+        }
+      },
+      factor:
+        game.poisonChance < 1 ? `Poison chance +10%` : `Poison duration +0.5s`,
+    },
+    {
+      label: `❄️ +${20 + 7 * waveScale}% Ice Damage`,
+      description: `Increases slow zone damage.`,
+      apply: () => {
+        if (game.iceFlat <= 0) game.iceFlat += 5;
+        game.icePercent += (20 + 7 * waveScale) / 100;
+        if (Math.round(game.iceSlowFactor) > 0.4) {
+          game.iceSlowFactor -= 0.1;
+          if (Math.round(game.iceSlowFactor * 10) === 4) {
+            game.iceSlowFactor = 0.4;
+          }
+        } else game.iceSlowFactor = 0.4;
+      },
+      factor: iceSlowFactor,
+    },
+    {
+      label: `⚡ +${20 + 6 * waveScale}% Lightning Damage`,
+      description: `Increases lightning amp damage.`,
+      apply: () => {
+        if (game.lightningFlat <= 0) game.lightningFlat += 5;
+        game.lightningPercent += (20 + 6 * waveScale) / 100;
+        game.lightningAmp += 0.05;
+      },
+      factor: `Shock effect +5%, chain targets: ${6 + game.lightningChain}`,
+    },
+    ...(game.waveCount > 1
+      ? [
+          {
+            label: `💥 +${5 + 4 * waveScale}% Overall Damage Multiplier`,
+            description: `Boosts all damage.`,
+            apply: () => (game.multiplier += (5 + 4 * waveScale) / 100),
+            factor: `Overall damage +${5 + 4 * waveScale}%`,
+          },
+        ]
+      : []),
+    ...(game.critChance < 1 && game.waveCount > 1
+      ? [
+          {
+            label: `🎯 +25% Critical Hit Chance`,
+            description: `Doubles critical hit damage.`,
+            apply: () => (game.critChance += 25 / 100),
+            factor: `Critical hit chance +25%`,
+          },
+        ]
+      : []),
+    ...(game.waveCount > 1
+      ? [
+          {
+            label: `🏹 +30% Attack Speed`,
+            description: `Fires arrows faster.`,
+            apply: () => {
+              game.attackSpeed += 30 / 100;
+              game.startAutoShootTimer();
+            },
+            factor: `Attack speed +30%`,
+          },
+        ]
+      : []),
+  ];
+}
+
+export function getAllBossChoices(game: MainGame) {
+  return [
+    {
+      label: `🗡️ +1 Phys Stack per Attack`,
+      description: `Each attack applies an additional physbreak stack.`,
+      apply: () => {
+        game.awakened.phys = true;
+        game.physMultiplier += 0.05;
+        game.physStack += 1;
+        game.attackSpeed += 0.25;
+      },
+      factor: `Physbreak stacks +${game.physStack + 1}, Attack Speed +25%`,
+    },
+    {
+      label: `🔥 Corpse Explosion +8%`,
+      description: `Kills enemies with fire explosions, dealing 8% of their HP as AoE damage.`,
+      apply: () => {
+        game.awakened.fire = true;
+        game.fireCorpseExplosion += 0.08;
+      },
+      factor: `Triggers ${
+        (game.fireCorpseExplosion + 0.08) * 100
+      }% HP AoE explosion`,
+    },
+    {
+      label: `⚡ Lightning Chain +1`,
+      description: `Lightning jumps to 1 more target and shock lasts 0.2s longer. 100% crit chance.`,
+      apply: () => {
+        game.awakened.lightning = true;
+        game.lightningChain += 1;
+        game.critChance = 1;
+      },
+      factor: `Chain targets: ${
+        game.lightningChain + 7
+      }, Critical Hit Chance 100%`,
+    },
+    {
+      label: `☠️ Poison Radius + Healblock`,
+      description: `Larger poison AoE, heal block, double tick speed.`,
+      apply: () => {
+        game.awakened.poison = true;
+        game.poisonHealBlock = true;
+        game.poisonChance = 1;
+        game.poisonDuration += 500;
+      },
+      factor: `Poison radius +${
+        game.poisonRadius + 10
+      }, Healing blocked, Poison Chance 100%, Duration +0.5s`,
+    },
+    {
+      label: `❄️ AoE Freeze Chance`,
+      description: `Chance to freeze enemies in an area for ${(
+        Math.round((game.iceFreezeDuration / 1000) * 100) / 100
+      ).toFixed(2)}s. AoE damage x0.5 ~ x1.5.`,
+      apply: () => {
+        game.awakened.ice = true;
+        if (game.iceFreezChance < 1) game.iceFreezChance += 0.1;
+        game.iceFreezeDuration += 100;
+      },
+      factor: `Freeze Chance +10%, Freeze Duration +0.1s`,
+    },
+  ];
 }

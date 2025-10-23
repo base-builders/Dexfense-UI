@@ -11,9 +11,9 @@ API.interceptors.request.use(
   (config) => {
     // Zustand store에서 최신 토큰 가져오기
     const token = useAuthStore.getState().token;
-
+    console.log("Attaching token to request:", token);
     if (token) {
-      config.headers.Authorization = `Bearer ${token}`;
+      config.headers.Authorization = token;
     }
 
     return config;

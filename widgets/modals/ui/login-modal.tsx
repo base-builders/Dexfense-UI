@@ -61,11 +61,6 @@ export const LoginModal: FC<LoginModalProps> = ({ onClose }) => {
       const userinfo = decodeJwt(data.token);
       useAuthStore.getState().setAuth(userinfo.address, data.token);
 
-      const game = window.phaserGame!;
-      game.registry.remove("user");
-      const reg = (game as any).typedRegistry as TypedRegistry;
-      reg.set("user", { address: userinfo.address });
-      console.log("✅ User set in registry:", reg.get("user"));
       handleClose();
     } catch (error) {
       console.error("❌ Signin error:", error);

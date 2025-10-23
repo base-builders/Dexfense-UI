@@ -4,6 +4,7 @@ import {
   MainMenu,
   TypedRegistry,
   PoolList,
+  MainGame,
 } from "@/features/game-core";
 import Phaser, { AUTO, Game } from "phaser";
 import { EventBus } from "@/features/game-core/lib/event-bus";
@@ -16,7 +17,7 @@ const config: Phaser.Types.Core.GameConfig = {
   width: 900,
   height: 580,
   backgroundColor: "#028af8",
-  scene: [Preloader, MainMenu, PoolList],
+  scene: [Preloader, MainMenu, PoolList, MainGame],
   physics: {
     default: "arcade",
     arcade: {

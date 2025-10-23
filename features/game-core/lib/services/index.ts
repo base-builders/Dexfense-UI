@@ -1,5 +1,7 @@
 import { getExpectedRatio, getUserBalance } from "../api";
 import { useGameStore, useAuthStore } from "@/shared";
+import { StartGameData } from "../api/types";
+import { Difficulty } from "../types";
 
 export async function refreshUserBalance() {
   const address = useAuthStore.getState().address;
@@ -21,4 +23,40 @@ export async function refreshExchangeRate() {
 
   useGameStore.getState().setExchangeRate(data.token2Amount);
   useGameStore.getState().setRatio(`1:${Number(data.token2Amount).toFixed(4)}`);
+}
+
+export async function getDafGameData(difficulty: string) {
+  try {
+    const res = await fetch(`/api/games/daf?difficulty=${difficulty}`);
+    if (!res.ok) {
+      throw new Error(`HTTP error! status: ${res.status}`);
+    }
+    return res.json();
+  } catch (error) {
+    console.error("Error fetching DAF game data:", error);
+  }
+}
+
+export async function startGame(
+  difficulty: Difficulty
+): Promise<StartGameData | undefined> {
+  try {
+    console.log("Start Game");
+    const res = await fetch(`/api/games/start`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: useAuthStore.getState().token || "",
+      },
+      body: JSON.stringify({ difficulty }),
+    });
+    if (!res.ok) {
+      alert("Your session has been expired. Please log in again.");
+      useAuthStore.getState().clearAuth();
+      throw new Error(`Failed to start game: ${res.status}`);
+    }
+    return res.json();
+  } catch (error) {
+    console.error("Error starting DAF game:", error);
+  }
 }
