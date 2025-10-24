@@ -6,6 +6,7 @@ import {
   createDifficultyButtons,
   showNotification,
   addLogoutButton,
+  addBalanceInfo,
 } from "../scene-helper";
 import { refreshExchangeRate, refreshUserBalance } from "../services";
 
@@ -46,6 +47,7 @@ export class PoolList extends Scene {
     await refreshExchangeRate();
     await refreshUserBalance();
     addLogoutButton.call(this);
+    addBalanceInfo.call(this);
 
     const { width, height } = this.scale;
 

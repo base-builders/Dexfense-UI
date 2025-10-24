@@ -1,6 +1,6 @@
 import Phaser from "phaser";
 import { MainGame, PoolList } from "./scenes";
-import { useGameStore } from "@/shared";
+import { useAuthStore, useGameStore } from "@/shared";
 import { difficultyConfig } from "./constants";
 import { Difficulty } from "./types";
 
@@ -198,9 +198,9 @@ export function createDifficultyButtons(this: PoolList, baseY: number) {
 export function createPlatforms(this: Phaser.Scene) {
   const group = this.physics.add.staticGroup();
 
-  const ground = this.physics.add.staticImage(450, 550, "ground").setDepth(1);
+  const ground = this.physics.add.staticImage(450, 600, "ground").setDepth(1);
   const fortress = this.physics.add
-    .staticImage(140, 356, "fortress")
+    .staticImage(140, 406, "fortress")
     .setDepth(2);
 
   // 그룹에 추가하면 한 번에 관리(선택)
@@ -485,6 +485,150 @@ export function showHistory(this: MainGame) {
     this.onHistory = false;
     this.time.paused = false;
     this.physics.world.resume();
+  });
+}
+
+export function addFastBtn(this: MainGame) {
+  // fast-forward 버튼 생성
+  const isFast = this.timeScaleMultiplier === 2;
+
+  // 버튼 배경용 사각형
+  const boxX = 850;
+  const boxY = 30;
+  const boxW = 64;
+  const boxH = 64;
+
+  // 배경 박스 추가
+  const fastBox = this.add
+    .rectangle(boxX, boxY, boxW, boxH, 0xffffaa, 0.4) // 밝은 노란색 + 약간 투명
+    .setStrokeStyle(2, 0xffd700, 0.8) // 금색 테두리 느낌
+    .setDepth(99)
+    .setScrollFactor(0);
+
+  // 버튼 이미지
+  this.fastBtn = this.add
+    .image(boxX, boxY, isFast ? "play" : "fast")
+    .setInteractive()
+    .setDepth(100)
+    .setScale(0.5)
+    .setScrollFactor(0);
+
+  // 🟨 “눌러보세요” 텍스트 (optional)
+  const hintText = this.add
+    .text(boxX, boxY + 40, "Tap me!", {
+      fontFamily: '"Press Start 2P"',
+      fontSize: "8px",
+      color: "#000000",
+    })
+    .setOrigin(0.5, 0)
+    .setDepth(100)
+    .setAlpha(0.6)
+    .setScrollFactor(0);
+
+  // 🔸 컨테이너로 묶어서 하나로 관리
+  const fastBtnContainer = this.add
+    .container(0, 0, [fastBox, this.fastBtn, hintText])
+    .setDepth(100);
+
+  // 🛑 처음엔 비활성화
+  this.fastBtn.disableInteractive();
+  hintText.setVisible(false);
+
+  // 5초 후 활성화 + 안내 표시
+  this.time.delayedCall(4500, () => {
+    this.fastBtn.setInteractive();
+    hintText.setVisible(true);
+
+    // 약간 깜빡이는 효과로 “눌러봐” 유도
+    this.tweens.add({
+      targets: hintText,
+      alpha: { from: 0.6, to: 1 },
+      yoyo: true,
+      repeat: -1,
+      duration: 600,
+    });
+  });
+
+  // 클릭 시 속도 토글
+  this.fastBtn.on("pointerdown", () => {
+    this.toggleSceneTimeScale();
+
+    // 눌렀으면 안내 텍스트 숨기기
+    hintText.setVisible(false);
+  });
+}
+
+export function setupHUD(this: MainGame) {
+  /** HUD 요소를 전부 container에 추가 */
+
+  const hudBoxW = 220;
+  const hudBoxH = 120;
+  const hudOffsetY = 60;
+  const hudBoxCenterX = this.viewportWidth - hudBoxW / 2 - 20;
+  const hudBoxCenterY = hudOffsetY + hudBoxH / 2;
+  const hudBg = this.add
+    .rectangle(hudBoxCenterX, hudBoxCenterY, hudBoxW, hudBoxH, 0xffffff, 0.8)
+    .setStrokeStyle(2, 0xffffff, 0.06)
+    .setDepth(95);
+
+  const hudContainer = this.add
+    .container(hudBoxCenterX - hudBoxW / 2, hudBoxCenterY - hudBoxH / 2)
+    .setDepth(110);
+
+  const textRightEdge = hudBoxW - 10; // 오른쪽 여백 10
+  const textBaseY = 20;
+  const textGap = 16;
+  const textStyle = {
+    fontSize: "12px",
+    fontFamily: '"Press Start 2P"',
+    color: "#000000",
+  };
+
+  // ✅ 공통 텍스트 생성 함수
+  const makeText = (text: string, offsetY: number) => {
+    const txt = this.add
+      .text(textRightEdge, textBaseY + offsetY, text, textStyle)
+      .setOrigin(1, 0) // ✅ 오른쪽 정렬
+      .setScrollFactor(0);
+    hudContainer.add(txt);
+    return txt;
+  };
+
+  this.waveText = makeText("Wave 1/25", 0);
+  this.killText = makeText(
+    `Kill ${this.killCount}/${this.TotalToken2Count}`,
+    textGap
+  );
+  this.unitCountText = makeText("Unit Count 0/25", textGap * 2);
+  this.timerText = makeText("Time Left 30", textGap * 3);
+  this.baseAmountText = makeText(
+    `Base Amount : ${(this.entryFee * this.exchangeRatio).toFixed(2)} ${
+      this.token2Name
+    }`,
+    textGap * 5
+  );
+
+  this.totalEarnText = this.add
+    .text(
+      570,
+      hudOffsetY + hudBoxH + 10,
+      `Total 💰 ${this.totalEarn.toFixed(2)} ${this.token2Name}`,
+      {
+        fontSize: "14px",
+        color: "#FFFF00",
+        fontFamily: '"Press Start 2P"',
+        stroke: "#000",
+        strokeThickness: 2,
+      }
+    )
+    .setDepth(100)
+    .setOrigin(0, 0);
+  hudContainer.addAt(hudBg, 0);
+
+  /** Scene 종료 시 정리 */
+  this.events.once("shutdown", () => {
+    hudContainer.destroy(true);
+    hudBg.destroy();
   });
 }
 
@@ -804,6 +948,8 @@ export function getAllChoices(game: MainGame) {
       : []),
   ];
 }
+
+export function addFastButton(this: MainGame) {}
 
 export function getAllBossChoices(game: MainGame) {
   return [

@@ -1,11 +1,13 @@
 import { useAuthStore, useNotificationStore } from "@/shared";
 import {
   addButton,
+  addFastBtn,
   addText,
   createPlatforms,
   getAllBossChoices,
   getAllChoices,
   initMainGameState,
+  setupHUD,
   showHistory,
   showInformation,
   showNotification,
@@ -54,6 +56,14 @@ export class MainGame extends Phaser.Scene {
   onHistory: boolean = false;
   onInformation: boolean = false;
   daf: number = 1;
+  spawnGroundY: number = 532;
+
+  // offsets
+  bossYOffset: number = -40;
+  playerYOffset: number = -20;
+  healerYOffset: number = -94;
+  statusIconYOffset: number = -40;
+  bossStatusIconYOffset: number = -80;
 
   // 게임 상태 관리
   gameId?: number;
@@ -176,29 +186,13 @@ export class MainGame extends Phaser.Scene {
 
     createPlatforms.call(this);
 
-    this.totalEarnText = this.add
-      .text(
-        570,
-        180,
-        `Total 💰 ${this.totalEarn.toFixed(2)} ${this.token2Name}`,
-        {
-          fontSize: "16px",
-          color: "#FFFF00",
-          fontFamily: '"Press Start 2P"',
-          stroke: "#000",
-          strokeThickness: 2,
-        }
-      )
-      .setDepth(100)
-      .setOrigin(0, 0);
-
     const { width, height } = this.scale;
     this.exchangeRatio = data.exchangeRate;
 
     this.viewportWidth = width;
     this.viewportHeight = height;
     this.difficulty = data.difficulty || "easy";
-    this.physics.add.staticImage(700, 405, "flag").setDepth(1);
+    this.physics.add.staticImage(700, 455, "flag").setDepth(1);
 
     initMainGameState.call(this);
 
@@ -250,7 +244,7 @@ export class MainGame extends Phaser.Scene {
     });
 
     this.castle = this.physics.add
-      .staticSprite(140, 356, "fortress")
+      .staticSprite(140, 406, "fortress")
       .setDepth(50);
 
     // (this.castle.body as Phaser.Physics.Arcade.Body).setImmovable(true);
@@ -289,156 +283,125 @@ export class MainGame extends Phaser.Scene {
       .setDepth(100)
       .setVisible(false);
 
-    const x = width - 180;
-    this.waveText = addText.call(this, {
-      x,
-      y: 60,
-      text: "wave 1/25 ",
-      style: { fontSize: "10px", color: "#000000" },
-      origin: { x: 0, y: 0 },
-    });
-
-    this.killText = addText
-      .call(this, {
-        x,
-        y: 80,
-        text: `kill ${this.killCount}/${this.TotalToken2Count}`,
-        style: { fontSize: "10px", color: "#000000" },
-        origin: { x: 0, y: 0 },
-      })
-      .setDepth(100);
-    this.unitCountText = addText.call(this, {
-      x,
-      y: 100,
-      text: "unit count 0/25",
-      style: { fontSize: "10px", color: "#000000" },
-      origin: { x: 0, y: 0 },
-    });
-    this.timerText = addText.call(this, {
-      x,
-      y: 120,
-      text: "Time left 30",
-      style: { fontSize: "10px", color: "#000000" },
-      origin: { x: 0, y: 0 },
-    });
-    this.baseAmountText = addText.call(this, {
-      x: x - 110,
-      y: 160,
-      text: `Base Amount : ${(this.entryFee * this.exchangeRatio).toFixed(2)} ${
-        this.token2Name
-      }`,
-      style: { fontSize: "10px", color: "#000000" },
-      origin: { x: 0, y: 0 },
-    });
-
+    addFastBtn.call(this);
+    setupHUD.call(this);
     // register events
     // start countdown
     this.startAutoShootTimer();
     this.startCountdown();
 
-    this.fastBtn =
-      this.timeScaleMultiplier === 2
-        ? this.add.image(650, 80, "play").setInteractive().setDepth(100)
-        : this.add.image(650, 80, "fast").setInteractive().setDepth(100);
+    // this.fastBtn =
+    //   this.timeScaleMultiplier === 2
+    //     ? this.add
+    //         .image(850, 30, "play")
+    //         .setInteractive()
+    //         .setDepth(100)
+    //         .setScale(0.5, 0.5)
+    //     : this.add
+    //         .image(850, 30, "fast")
+    //         .setInteractive()
+    //         .setDepth(100)
+    //         .setScale(0.5, 0.5);
 
-    this.fastBtn.disableInteractive(); // 🛑 처음엔 비활성화
+    // this.fastBtn.disableInteractive(); // 🛑 처음엔 비활성화
 
-    // 5초 후 활성화
-    this.time.delayedCall(4500, () => {
-      this.fastBtn.setInteractive();
-    });
+    // // 5초 후 활성화
+    // this.time.delayedCall(4500, () => {
+    //   this.fastBtn.setInteractive();
+    // });
 
-    console.log("Fast button created:", this.fastBtn);
-
-    this.fastBtn.on("pointerdown", () => {
-      this.toggleSceneTimeScale();
-    });
+    // this.fastBtn.on("pointerdown", () => {
+    //   this.toggleSceneTimeScale();
+    // });
   }
   update() {
     const store = useNotificationStore.getState();
     const queueLength = store.queue.length;
 
     const noNotificationActive =
-      !this.swapMessage.visible &&
-      (!this.notificationTimer || this.notificationTimer.getProgress() === 1);
+      !this.notificationTimer || this.notificationTimer.getProgress() === 1;
 
     if (noNotificationActive && queueLength) {
       const next = store.shift();
       if (next)
         showNotification.call(this, next, queueLength >= 3 ? 1000 : 4000);
     }
+    // Guard if token2Group isn't ready yet
+    const children = (this.token2Group?.getChildren?.() ||
+      []) as (Phaser.Physics.Arcade.Sprite & Token2)[];
+    if (children.length > 0) {
+      children.forEach((mon) => {
+        const token = mon as Phaser.Physics.Arcade.Sprite & Token2;
 
-    this.token2Group.getChildren().forEach((mon) => {
-      const token = mon as Phaser.Physics.Arcade.Sprite & Token2;
+        this.updateTokenHPBar(token);
 
-      this.updateTokenHPBar(token);
+        const keys = Object.keys(token.statusEffects || {});
+        const spacing = 24;
+        const startX = token.x - ((keys.length - 1) * spacing) / 2;
 
-      const keys = Object.keys(token.statusEffects || {});
-      const spacing = 24;
-      const startX = token.x - ((keys.length - 1) * spacing) / 2;
+        // 상태이상 아이콘 위치 조정, 중첩 수 아이콘 조정
+        keys.forEach((key, i) => {
+          const effect = token.statusEffects[key];
+          const iconX = startX + i * spacing;
+          const iconY = token.unitType === "boss" ? token.y - 90 : token.y - 50;
 
-      // 상태이상 아이콘 위치 조정, 중첩 수 아이콘 조정
-      keys.forEach((key, i) => {
-        const effect = token.statusEffects[key];
-        const iconX = startX + i * spacing;
-        const iconY = token.unitType === "boss" ? token.y - 90 : token.y - 50;
+          effect.icon.setPosition(iconX, iconY);
 
-        effect.icon.setPosition(iconX, iconY);
+          if (effect.type === "stackable") {
+            const stackable = effect as StackableEffect;
+            if (stackable.stackText) {
+              stackable.stackText.setPosition(iconX + 5, iconY + 5);
+              stackable.stackText.setText(`${stackable.stacks}`);
+            }
+          }
 
-        if (effect.type === "stackable") {
-          const stackable = effect as StackableEffect;
-          if (stackable.stackText) {
-            stackable.stackText.setPosition(iconX + 5, iconY + 5);
-            stackable.stackText.setText(`${stackable.stacks}`);
+          if (effect.type === "poison") {
+            const poison = effect as PoisonStatusEffect;
+            if (poison.stackText) {
+              poison.stackText.setPosition(iconX + 5, iconY + 5);
+              poison.stackText.setText(`${poison.subs.length}`);
+            }
+          }
+        });
+
+        // 얼음 존 감지
+        const isOnIce = this.iceZones.some((zone) =>
+          Phaser.Geom.Intersects.RectangleToRectangle(
+            token.getBounds(),
+            zone.getBounds()
+          )
+        );
+
+        const originalSpeed = token.getData("originalSpeed");
+        let speedFactor = 1.0;
+
+        if (this.bossAlive) {
+          speedFactor *= this.globalSpeedBuff;
+        }
+
+        if (isOnIce) {
+          speedFactor *= this.iceSlowFactor;
+          if (!token.getData("iceSlowed")) {
+            token.setData("iceSlowed", true);
+          }
+        } else {
+          if (token.getData("iceSlowed")) {
+            token.setData("iceSlowed", false);
           }
         }
 
-        if (effect.type === "poison") {
-          const poison = effect as PoisonStatusEffect;
-          if (poison.stackText) {
-            poison.stackText.setPosition(iconX + 5, iconY + 5);
-            poison.stackText.setText(`${poison.subs.length}`);
-          }
+        const expectedSpeed =
+          -originalSpeed * speedFactor * this.timeScaleMultiplier ** 2;
+        const currentSpeed = token.body!.velocity.x;
+
+        if (token.getData("isFrozen")) return;
+        const speedRatioDiff = Math.abs(currentSpeed / expectedSpeed - 1);
+        if (speedRatioDiff > 0.01) {
+          // 1% 이상 차이 나면 갱신
+          token.setVelocityX(expectedSpeed);
         }
       });
-
-      // 얼음 존 감지
-      const isOnIce = this.iceZones.some((zone) =>
-        Phaser.Geom.Intersects.RectangleToRectangle(
-          token.getBounds(),
-          zone.getBounds()
-        )
-      );
-
-      const originalSpeed = token.getData("originalSpeed");
-      let speedFactor = 1.0;
-
-      if (this.bossAlive) {
-        speedFactor *= this.globalSpeedBuff;
-      }
-
-      if (isOnIce) {
-        speedFactor *= this.iceSlowFactor;
-        if (!token.getData("iceSlowed")) {
-          token.setData("iceSlowed", true);
-        }
-      } else {
-        if (token.getData("iceSlowed")) {
-          token.setData("iceSlowed", false);
-        }
-      }
-
-      const expectedSpeed =
-        -originalSpeed * speedFactor * this.timeScaleMultiplier ** 2;
-      const currentSpeed = token.body!.velocity.x;
-
-      if (token.getData("isFrozen")) return;
-      const speedRatioDiff = Math.abs(currentSpeed / expectedSpeed - 1);
-      if (speedRatioDiff > 0.01) {
-        // 1% 이상 차이 나면 갱신
-        token.setVelocityX(expectedSpeed);
-      }
-    });
+    }
 
     this.physics.world.bodies.entries.forEach((body) => {
       const arrow = body.gameObject as Phaser.Physics.Arcade.Sprite & ArrowData;
@@ -678,7 +641,7 @@ export class MainGame extends Phaser.Scene {
     monster.destroy();
     this.unitCount--;
     this.unitCountText.setText(
-      `unit count ${this.unitCount}/${this.deathCount}`
+      `Unit Count ${this.unitCount}/${this.deathCount}`
     );
     this.killText.setText(`kill ${this.killCount}/${this.TotalToken2Count}`);
   }
@@ -1155,9 +1118,14 @@ export class MainGame extends Phaser.Scene {
     const spacing = 24;
     const startX = sprite.x - ((keys.length - 1) * spacing) / 2;
 
+    const iconYOffset =
+      sprite.unitType === "boss"
+        ? this.bossStatusIconYOffset
+        : this.statusIconYOffset;
+
     keys.forEach((key, i) => {
       const effect = sprite.statusEffects[key];
-      effect.icon.setPosition(startX + i * spacing, sprite.y - 40);
+      effect.icon.setPosition(startX + i * spacing, sprite.y + iconYOffset);
 
       if (effect.type === "stackable") {
         const stackable = effect as StackableEffect;
@@ -1216,7 +1184,7 @@ export class MainGame extends Phaser.Scene {
     const startX = origin.x - (setWidth * 1) / 2;
     const y =
       (origin as Token2).unitType === "healer"
-        ? origin.y + 20 + 94
+        ? origin.y + this.healerYOffset + 30
         : origin.y + 20;
     const setBounds = new Phaser.Geom.Rectangle(startX, y - 10, setWidth, 50);
 
@@ -1403,6 +1371,7 @@ export class MainGame extends Phaser.Scene {
       if (flag) this.applyIceStun(enemy);
     });
   }
+
   private applyPhysbreakBonus(
     target: Phaser.Physics.Arcade.Sprite & Token2
   ): number {
@@ -2018,10 +1987,10 @@ export class MainGame extends Phaser.Scene {
         break;
     }
 
-    this.waveText.setText(`wave ${this.waveCount}/25`);
+    this.waveText.setText(`Wave ${this.waveCount}/25`);
 
     this.unitCountText.setText(
-      `unit count ${this.unitCount}/${this.deathCount}`
+      `Unit Count ${this.unitCount}/${this.deathCount}`
     );
 
     const originHp =
@@ -2031,13 +2000,12 @@ export class MainGame extends Phaser.Scene {
       (13 + (2 + difficultyConfig) * 5 * waveConfigFactor) *
       1.4 ** (this.waveCount - 1);
     const isBossWave = this.waveCount % 5 === 0;
-    const groundY = 482;
 
     if (isBossWave) {
       this.sound.play("boss");
 
       const boss = this.token2Group
-        .create(900, groundY - 40, "token2boss")
+        .create(900, this.spawnGroundY - this.bossYOffset, "token2boss")
         .setImmovable() as Physics.Arcade.Sprite & Token2;
 
       boss.statusEffects = {};
@@ -2077,7 +2045,7 @@ export class MainGame extends Phaser.Scene {
 
       this.unitCount++;
       this.unitCountText.setText(
-        `unit count ${this.unitCount}/${this.deathCount}`
+        `Unit Count ${this.unitCount}/${this.deathCount}`
       );
       if (this.unitCount >= this.deathCount) {
         this.token2SpawnTimer?.remove();
@@ -2091,14 +2059,14 @@ export class MainGame extends Phaser.Scene {
       repeat: this.maxSpawn - 1,
       callback: () => {
         const tokenType: UnitType = this.getRandomTokenType();
-
+        const spawnY =
+          tokenType === "healer"
+            ? this.spawnGroundY + this.healerYOffset
+            : this.spawnGroundY;
         const token2 = this.token2Group
-          .create(
-            900,
-            tokenType === "healer" ? groundY - 94 : groundY,
-            `token2${tokenType}`
-          )
+          .create(900, spawnY, `token2${tokenType}`)
           .setImmovable() as Physics.Arcade.Sprite & Token2;
+
         token2.setDepth(309);
         token2.anims.play(`token2${tokenType}`);
         token2.statusEffects = {};
@@ -2171,7 +2139,7 @@ export class MainGame extends Phaser.Scene {
 
         this.unitCount++;
         this.unitCountText.setText(
-          `unit count ${this.unitCount}/${this.deathCount}`
+          `Unit Count ${this.unitCount}/${this.deathCount}`
         );
         if (this.unitCount >= this.deathCount) {
           this.token2SpawnTimer?.remove();
@@ -2187,8 +2155,7 @@ export class MainGame extends Phaser.Scene {
       repeat: timer - 1,
       callback: () => {
         timer--;
-        this.timerText.setText(`Time left:  ${timer}`);
-        this.timerText.setText(`Time left:  ${timer}`);
+        this.timerText.setText(`Time Left:  ${timer}`);
         if (timer <= 5) {
           this.timerText.setColor("#FF0000"); // 빨간색
         } else {

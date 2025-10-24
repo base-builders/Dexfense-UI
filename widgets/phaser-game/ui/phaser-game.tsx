@@ -16,7 +16,7 @@ import { useModalStore } from "@/shared";
 const config: Phaser.Types.Core.GameConfig = {
   type: AUTO,
   width: 900,
-  height: 580,
+  height: 680,
   backgroundColor: "#028af8",
   scene: [Preloader, MainMenu, PoolList, MainGame, GameResult],
   physics: {
@@ -96,7 +96,7 @@ export const PhaserGame = () => {
       <div
         ref={containerRef}
         id="game-container"
-        className="w-[900px] h-[580px] rounded-sm border-3 border-gray-200 overflow-hidden"
+        className="w-[900px] h-[680px] rounded-sm border-3 border-gray-200 overflow-hidden"
       />
     </>
   );
