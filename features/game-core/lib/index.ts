@@ -1,5 +1,5 @@
 export { EventBus } from "./event-bus";
-export { MainMenu, Preloader, PoolList, MainGame } from "./scenes";
+export * from "./scenes";
 export { TypedRegistry } from "./typed-registry";
 export type { GameRegistry } from "./typed-registry";
 export * from "./scene-helper";

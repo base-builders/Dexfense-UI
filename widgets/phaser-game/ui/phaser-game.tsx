@@ -5,8 +5,9 @@ import {
   TypedRegistry,
   PoolList,
   MainGame,
+  GameResult,
 } from "@/features/game-core";
-import Phaser, { AUTO, Game } from "phaser";
+import Phaser, { AUTO } from "phaser";
 import { EventBus } from "@/features/game-core/lib/event-bus";
 import Image from "next/image";
 import { LoginModal } from "@/widgets";
@@ -17,7 +18,7 @@ const config: Phaser.Types.Core.GameConfig = {
   width: 900,
   height: 580,
   backgroundColor: "#028af8",
-  scene: [Preloader, MainMenu, PoolList, MainGame],
+  scene: [Preloader, MainMenu, PoolList, MainGame, GameResult],
   physics: {
     default: "arcade",
     arcade: {
