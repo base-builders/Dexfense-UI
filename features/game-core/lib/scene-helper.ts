@@ -4,6 +4,66 @@ import { useGameStore } from "@/shared";
 import { difficultyConfig } from "./constants";
 import { Difficulty } from "./types";
 
+export function addLogoutButton(this: Phaser.Scene) {
+  const { width } = this.scale;
+  this.add
+    .text(width - 70, 30, "Logout", {
+      fontFamily: '"Press Start 2P"',
+      fontSize: 12,
+      color: "#FFFFFF",
+      stroke: "#000000",
+      strokeThickness: 3,
+      backgroundColor: "#FF0000",
+      align: "center",
+      padding: { x: 8, y: 4 },
+    })
+    .setOrigin(0.5)
+    .setInteractive({ useHandCursor: true })
+    .on("pointerdown", () => {
+      useAuthStore.getState().clearAuth(); // 상태 초기화
+      this.scene.stop("PoolList");
+      this.scene.start("MainMenu"); // MainMenu로 이동
+    })
+    .setDepth(100);
+}
+
+export function addBalanceInfo(this: PoolList) {
+  const { token1Amount, token2Amount } = useGameStore.getState().balance;
+  const token1AmountText =
+    token1Amount !== undefined && token1Amount !== null
+      ? `Balance ETH: ${token1Amount.toFixed(4)}`
+      : `Token1: Error`;
+
+  const token2AmountText =
+    token2Amount !== undefined && token2Amount !== null
+      ? `Balance USDT: ${token2Amount.toFixed(4)}`
+      : `Token2: Error`;
+
+  this.token1Amount = this.add
+    .text(40, 30, token1AmountText, {
+      fontFamily: '"Press Start 2P"',
+      fontSize: 10,
+      color: "#FFFFFF",
+      stroke: "#000000",
+      strokeThickness: 3,
+      align: "right",
+    })
+    .setOrigin(0)
+    .setDepth(100);
+
+  this.token2Amount = this.add
+    .text(40, 55, token2AmountText, {
+      fontFamily: '"Press Start 2P"',
+      fontSize: 10,
+      color: "#FFFFFF",
+      stroke: "#000000",
+      strokeThickness: 3,
+      align: "right",
+    })
+    .setOrigin(0)
+    .setDepth(100);
+}
+
 export function createDifficultyButtons(this: PoolList, baseY: number) {
   const container = this.add
     .container(this.scale.width / 2, baseY)

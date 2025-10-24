@@ -5,15 +5,24 @@ import {
   createPoolCard,
   createDifficultyButtons,
   showNotification,
+  addLogoutButton,
 } from "../scene-helper";
 import { refreshExchangeRate, refreshUserBalance } from "../services";
 
+interface UserInfo {
+  address: string;
+  token1Amount: number;
+  token2Amount: number;
+}
 export class PoolList extends Scene {
   token1 = "ETH";
   token2 = "USDT";
   activeButtons: GameObjects.Container | null = null;
   notificationTimer?: Phaser.Time.TimerEvent;
   swapMessage!: Phaser.GameObjects.Text;
+  address!: GameObjects.Text;
+  token1Amount!: GameObjects.Text;
+  token2Amount!: GameObjects.Text;
 
   constructor() {
     super({ key: "PoolList" });
@@ -36,6 +45,7 @@ export class PoolList extends Scene {
 
     await refreshExchangeRate();
     await refreshUserBalance();
+    addLogoutButton.call(this);
 
     const { width, height } = this.scale;
 
