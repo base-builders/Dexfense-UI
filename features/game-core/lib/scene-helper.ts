@@ -15,9 +15,9 @@ export function createDifficultyButtons(this: PoolList, baseY: number) {
     amount: number;
     bg: number; // hex color
   }> = [
-    { level: "easy", amount: 1, bg: 0xb3ffcc },
-    { level: "normal", amount: 10, bg: 0xfff599 },
-    { level: "hard", amount: 100, bg: 0xffb3b3 },
+    { level: "easy", amount: 0.0001, bg: 0xb3ffcc },
+    { level: "normal", amount: 0.001, bg: 0xfff599 },
+    { level: "hard", amount: 0.01, bg: 0xffb3b3 },
   ];
 
   const spacing = 220; // 버튼 간 간격
