@@ -10,7 +10,7 @@ import {
 import Phaser, { AUTO } from "phaser";
 import { EventBus } from "@/features/game-core/lib/event-bus";
 import Image from "next/image";
-import { LoginModal } from "@/widgets";
+import { LoginModal, DexModal } from "@/widgets";
 import { useModalStore } from "@/shared";
 
 const config: Phaser.Types.Core.GameConfig = {
@@ -51,7 +51,9 @@ export const PhaserGame = () => {
   const gameRef = useRef<Phaser.Game | null>(null);
 
   const [isPhaserLoading, setIsPhaserLoading] = useState(true);
-  const { showLoginModal, setShowLoginModal } = useModalStore();
+  const { showLoginModal, showDexModal, setShowDexModal, setShowLoginModal } =
+    useModalStore();
+
   useLayoutEffect(() => {
     if (!containerRef.current || gameRef.current) return;
 
@@ -67,13 +69,13 @@ export const PhaserGame = () => {
 
   useEffect(() => {
     setIsPhaserLoading(true);
-    EventBus.on("assets-loaded", () => {
+    EventBus.on("scene-ready", () => {
       console.log("Assets have been loaded!");
       setIsPhaserLoading(false);
     });
 
     return () => {
-      EventBus.removeAllListeners("assets-loaded");
+      EventBus.removeAllListeners("scene-ready");
       setIsPhaserLoading(false);
     };
   }, []);
@@ -93,6 +95,8 @@ export const PhaserGame = () => {
       {showLoginModal && (
         <LoginModal onClose={() => setShowLoginModal(false)} />
       )}
+      {showDexModal && <DexModal onClose={() => setShowDexModal(false)} />}
+
       <div
         ref={containerRef}
         id="game-container"

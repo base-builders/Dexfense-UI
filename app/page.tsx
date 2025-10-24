@@ -1,10 +1,15 @@
+import { About } from "./_components/about";
 import { GameClient } from "./_components/game-client";
-
 export default function Home() {
   return (
     <main>
       <div className="mt-20 mx-auto h-screen flex flex-col items-center">
-        <GameClient />
+        <div className="absolute z-0">
+          <GameClient />
+        </div>
+        <div className="relative  z-10 mt-[700px] flex flex-col items-center pointer-events-none">
+          <About />
+        </div>
       </div>
     </main>
   );

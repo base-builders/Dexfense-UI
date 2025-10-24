@@ -1,8 +1,8 @@
 import type { Metadata } from "next";
 import { Press_Start_2P, Quantico } from "next/font/google";
-import "./globals.css";
 import { Providers } from "./providers";
 import { Navbar } from "@/widgets/navbar/ui/navbar";
+import "./globals.css";
 
 const quantico = Quantico({
   variable: "--font-quantico",

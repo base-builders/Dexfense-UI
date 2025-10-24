@@ -1,17 +1,19 @@
 "use client";
-import { useAuthStore } from "@/shared/store";
-// import { ConnectButton } from "@rainbow-me/rainbowkit";
+import { useAuthStore, useModalStore } from "@/shared/store";
+import { ConnectButton } from "@rainbow-me/rainbowkit";
 import { useState } from "react";
 export const Navbar = () => {
   const userToken = useAuthStore((state) => state.token);
-  const [showDexModal, setShowDexModal] = useState(false);
+  const setShowDexModal = useModalStore((state) => state.setShowDexModal);
   const handleDexClick = () => {
     setShowDexModal(true);
   };
-  //   return <ConnectButton />;
   return (
     <div>
-      <div className="flex justify-center mt-20 flex-1 gap-6 font-quantico font-bold text-xl relative">
+      <div className="py-5 px-6">
+        <ConnectButton />
+      </div>
+      <div className="flex justify-center mt-10 flex-1 gap-6 font-quantico font-bold text-xl relative">
         <a
           href="https://dexfense-protocol.gitbook.io/fensepedia"
           target="_blank"

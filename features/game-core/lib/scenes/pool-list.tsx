@@ -9,6 +9,7 @@ import {
   addBalanceInfo,
 } from "../scene-helper";
 import { refreshExchangeRate, refreshUserBalance } from "../services";
+import { EventBus } from "../event-bus";
 
 interface UserInfo {
   address: string;
@@ -32,6 +33,7 @@ export class PoolList extends Scene {
   preload() {}
 
   async create() {
+    EventBus.emit("scene-ready");
     this.swapMessage = this.add
       .text(512, 10, "", {
         fontSize: "16px",

@@ -79,7 +79,6 @@ export class Preloader extends Scene {
     });
 
     this.load.on("complete", () => {
-      EventBus.emit("assets-loaded");
       const accessToken = useAuthStore.getState().token;
       if (accessToken) {
         this.scene.start("PoolList");
@@ -89,5 +88,9 @@ export class Preloader extends Scene {
         console.log("ℹ️ No access token found in Zustand store.");
       }
     });
+  }
+
+  create() {
+    EventBus.emit("scene-ready");
   }
 }
