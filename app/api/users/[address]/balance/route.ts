@@ -6,9 +6,10 @@ const SERVER_URL =
 
 export async function GET(
   _: Request,
-  { params: { address } }: { params: { address: string } }
+  { params }: { params: Promise<{ address: string }> }
 ) {
   try {
+    const { address } = await params;
     console.log("Fetching balance for address:", address);
     const res = await API.get(
       `${SERVER_URL}/api/users/balance?address=${address}`,
