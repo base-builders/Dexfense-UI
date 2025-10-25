@@ -18,6 +18,7 @@ export class GameResult extends Phaser.Scene {
   totalKilled: number = 500;
   baseRatio!: number;
   killedStandard = 400;
+  entryFee = 0.0001;
 
   swapMessage!: Phaser.GameObjects.Text;
   notificationTimer?: Phaser.Time.TimerEvent;
@@ -34,6 +35,7 @@ export class GameResult extends Phaser.Scene {
     this.waveReached = data.waveCount;
     this.totalKilled = data.killCount;
     this.difficulty = data.difficulty;
+    this.entryFee = data.difficulty === "easy" ? 0.0001 : data.difficulty === "normal" ? 0.001 : 0.01;
   }
 
   async create() {
@@ -152,7 +154,7 @@ export class GameResult extends Phaser.Scene {
       .setDepth(100);
 
     // Formula
-    const base = this.baseRatio;
+    const base = this.baseRatio * this.entryFee;
     const formula = `${base} x ( ${this.totalKilled} / ${
       this.killedStandard
     } ) = ${(base * (this.totalKilled / this.killedStandard)).toFixed(2)}`;
