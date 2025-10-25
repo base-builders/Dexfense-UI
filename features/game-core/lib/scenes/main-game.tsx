@@ -2005,7 +2005,7 @@ export class MainGame extends Phaser.Scene {
       this.sound.play("boss");
 
       const boss = this.token2Group
-        .create(900, this.spawnGroundY - this.bossYOffset, "token2boss")
+        .create(900, this.spawnGroundY + this.bossYOffset, "token2boss")
         .setImmovable() as Physics.Arcade.Sprite & Token2;
 
       boss.statusEffects = {};
