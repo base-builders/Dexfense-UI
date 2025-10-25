@@ -3,6 +3,7 @@ import {
   useGameResultStore,
   useNotificationStore,
 } from "@/shared";
+import { createPlatforms } from "../scene-helper";
 
 const SERVER_URL =
   process.env.NEXT_PUBLIC_SERVER_URL || "http://localhost:8000";
@@ -36,8 +37,7 @@ export class GameResult extends Phaser.Scene {
   }
 
   async create() {
-    this.physics.add.staticImage(450, 520, "ground").setDepth(1);
-    this.physics.add.staticImage(140, 330, "fortress").setDepth(2);
+    createPlatforms.call(this);
 
     const { width, height } = this.scale;
 
