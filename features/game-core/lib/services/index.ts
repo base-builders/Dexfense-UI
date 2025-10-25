@@ -4,17 +4,21 @@ import { StartGameData } from "../api/types";
 import { Difficulty } from "../types";
 
 export async function refreshUserBalance() {
-  const address = useAuthStore.getState().address;
-  if (!address) throw new Error("No address found");
+  try {
+    const address = useAuthStore.getState().address;
+    if (!address) throw new Error("No address found");
 
-  const data = await getUserBalance(address);
-  if (!data) throw new Error("Failed to fetch balance");
-  useGameStore.getState().setBalance({
-    token1Amount: data.token1Amount,
-    token2Amount: data.token2Amount,
-  });
+    const data = await getUserBalance(address);
+    if (!data) throw new Error("Failed to fetch balance");
+    useGameStore.getState().setBalance({
+      token1Amount: data.token1Amount,
+      token2Amount: data.token2Amount,
+    });
 
-  return data; // 필요 시 반환도 가능
+    return data; // 필요 시 반환도 가능
+  } catch (err) {
+    console.error("Error refreshing user balance:", err);
+  }
 }
 
 export async function refreshExchangeRate() {
