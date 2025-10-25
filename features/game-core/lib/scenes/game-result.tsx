@@ -220,7 +220,7 @@ export class GameResult extends Phaser.Scene {
       .setInteractive();
 
     nextBtn.on("pointerdown", () => {
-      this.scene.start("MainMenu");
+      this.scene.start("PoolList");
     });
   }
 
