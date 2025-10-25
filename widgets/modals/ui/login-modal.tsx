@@ -3,7 +3,6 @@ import { motion, AnimatePresence } from "framer-motion";
 import { useAuthStore } from "@/shared";
 import { MdClose } from "react-icons/md";
 import { decodeJwt } from "@/shared";
-import { TypedRegistry } from "@/features/game-core/lib/typed-registry";
 
 type LoginModalProps = {
   onClose: () => void;
@@ -74,7 +73,7 @@ export const LoginModal: FC<LoginModalProps> = ({ onClose }) => {
     <AnimatePresence>
       {visible && (
         <motion.div
-          className="fixed inset-0 bg-[#00000080] backdrop-blur-sm flex items-center justify-center z-50"
+          className="fixed -mt-30 inset-0 bg-[#00000080] backdrop-blur-sm flex items-center justify-center z-50"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
@@ -159,17 +158,6 @@ export const LoginModal: FC<LoginModalProps> = ({ onClose }) => {
                 🚀 Enter the DexFense
               </button>
             </form>
-
-            <hr className="border-t-[2px] border-blue-600 mt-6 mb-4" />
-
-            <p className="text-white" style={outline}>
-              No code? No worries.
-              <br />
-              Just hop into our{" "}
-              <span className="text-[#5865F2] font-bold" style={outline}>
-                Discord fortress!
-              </span>{" "}
-            </p>
           </motion.div>
         </motion.div>
       )}
