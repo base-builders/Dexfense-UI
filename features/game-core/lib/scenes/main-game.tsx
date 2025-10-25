@@ -616,7 +616,7 @@ export class MainGame extends Phaser.Scene {
 
     this.totalEarn += ((this.entryFee * 1) / 400) * this.exchangeRatio;
     this.totalEarnText.setText(
-      `Total 💰 ${this.totalEarn.toFixed(2)} ${this.token2Name} `
+      `Total 💰 ${this.totalEarn.toFixed(3)} ${this.token2Name} `
     );
     this.showGoldGain(
       monster.x,

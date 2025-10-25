@@ -612,7 +612,7 @@ export function setupHUD(this: MainGame) {
     .text(
       570,
       hudOffsetY + hudBoxH + 10,
-      `Total 💰 ${this.totalEarn.toFixed(2)} ${this.token2Name}`,
+      `Total 💰 ${this.totalEarn.toFixed(3)} ${this.token2Name}`,
       {
         fontSize: "14px",
         color: "#FFFF00",
