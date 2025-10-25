@@ -1,3 +1,4 @@
+"use client";
 import { useState, FC } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useAuthStore } from "@/shared";
