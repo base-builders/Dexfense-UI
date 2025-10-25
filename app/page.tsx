@@ -7,7 +7,7 @@ export default function Home() {
         <div className="absolute z-0">
           <GameClient />
         </div>
-        <div className="relative  z-10 mt-[700px] flex flex-col items-center pointer-events-none">
+        <div className="relative  z-10 mt-[700px] flex flex-col items-center">
           <About />
         </div>
       </div>
