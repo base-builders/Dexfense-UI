@@ -6,21 +6,21 @@ export const difficultyConfig = {
     globalSpeed: 30,
     resist: 1.0,
     hpMultiplier: 1,
-    entryFee: 1,
+    entryFee: 0.0001,
   },
   normal: {
     maxSpawn: 25,
     globalSpeed: 35,
     resist: 1.1,
     hpMultiplier: 1.5,
-    entryFee: 10,
+    entryFee: 0.001,
   },
   hard: {
     maxSpawn: 30,
     globalSpeed: 40,
     resist: 1.2,
     hpMultiplier: 2,
-    entryFee: 100,
+    entryFee: 0.01,
   },
 };
 
