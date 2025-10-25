@@ -17,6 +17,8 @@ export async function refreshUserBalance() {
 
     return data; // 필요 시 반환도 가능
   } catch (err) {
+    alert("Failed to refresh user balance. Please log in again.");
+    useAuthStore.getState().clearAuth();
     console.error("Error refreshing user balance:", err);
   }
 }
