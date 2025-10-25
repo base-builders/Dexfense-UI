@@ -2,25 +2,24 @@
 
 import { useState, FC, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { useAuthStore } from "@/shared/store";
+import { useAuthStore, useGameStore } from "@/shared/store";
+import {
+  refreshUserBalance,
+  refreshExchangeRate,
+} from "@/features/game-core/lib/services";
 
 type DexModalProps = {
   onClose: () => void;
 };
 
 export const DexModal: FC<DexModalProps> = ({ onClose }) => {
+  const { token1Amount: token1Balance, token2Amount: token2Balance } =
+    useGameStore((state) => state.balance);
+  const fee = useGameStore((state) => state.fee);
+  const exchangeRate = useGameStore((state) => state.exchangeRate);
   const [visible, setVisible] = useState(true);
-  const [token1Amount, setToken1Amount] = useState<number>(0);
-  const [token1Balance, setToken1Balance] = useState<number>(0);
-  const [token2Amount, setToken2Amount] = useState<number>(0);
-  const [token2Balance, setToken2Balance] = useState<number>(0);
-  const [feeRate, setFeeRate] = useState<number>(0);
-  const [ratio, setRatio] = useState<number>(-1);
-  const [output, setOutput] = useState<"" | "token1" | "token2">("");
+  const [output, setOutput] = useState<"" | "ETH" | "USDT">("");
   const [isSwapping, setIsSwapping] = useState(false);
-
-  const token = useAuthStore.getState().token;
-  const user = useAuthStore.getState().address; // user도 꺼내야 함
 
   const handleClose = () => {
     setVisible(false);
@@ -28,101 +27,86 @@ export const DexModal: FC<DexModalProps> = ({ onClose }) => {
   };
 
   useEffect(() => {
-    getExpectRatio();
-    getUserBalance();
+    const fetchData = async () => {
+      await refreshExchangeRate();
+      await refreshUserBalance();
+    };
+    fetchData();
   }, []);
-  console.log("DEX Modal rendered");
-  const getUserBalance = async () => {
-    if (!token) {
-      console.error("No auth token or address provided");
-      return;
-    }
-    const res = await fetch(`/api/users/balance?address=${user}`, {
-      method: "GET",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${token}`,
-      },
-    });
 
-    if (!res.ok) {
-      console.error("❌ Failed to fetch user balance");
-      return;
-    }
-    const data = await res.json();
-    setToken1Balance(data.userBalance.token1Amount);
-    setToken2Balance(data.userBalance.token2Amount);
-  };
-
-  const getExpectRatio = async () => {
-    const res = await fetch("/api/pools/expectRatio", {
-      method: "GET",
-      headers: { "Content-Type": "application/json" },
-    });
-
-    if (!res.ok) {
-      console.error("❌ Failed to fetch expectRatio");
-      return;
-    }
-    const data = await res.json();
-
-    setRatio(data.expectRatio.token2Amount);
-    setFeeRate(data.expectRatio.fee);
-  };
+  // 💡 상태를 문자열로 관리
+  const [token1Amount, setToken1Amount] = useState<string>("");
+  const [token2Amount, setToken2Amount] = useState<string>("");
 
   const handleToken1Change = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const value = e.target.value;
+    let value = e.target.value;
 
-    // 정규식: 숫자와 소수점 하나만 허용
-    if (!/^\d*\.?\d*$/.test(value)) {
-      return; // 잘못된 입력 무시
+    // ✅ 숫자 및 소수점만 허용
+    if (!/^\d*\.?\d*$/.test(value)) return;
+
+    // ✅ 소수점 8자리까지만 허용 (ETH)
+    if (value.includes(".")) {
+      const [int, dec] = value.split(".");
+      value = int + "." + dec.slice(0, 8);
     }
 
-    if (Number(value) === 0) {
-      resetInputs();
+    setOutput("USDT");
+    setToken1Amount(value);
+
+    // 입력 중 "." 만 입력되었을 경우 계산 안 함
+    if (value === "" || value === ".") {
+      setToken2Amount("");
       return;
     }
-    setOutput("token2");
-    setToken1Amount(Number(value));
-    setToken2Amount(Number(value) * ratio);
+
+    const num = parseFloat(value);
+    if (!isNaN(num)) setToken2Amount((num * exchangeRate).toFixed(2));
   };
 
   const handleToken2Change = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const value = e.target.value;
+    let value = e.target.value;
 
-    // 정규식: 숫자와 소수점 하나만 허용
-    if (!/^\d*\.?\d*$/.test(value)) {
-      return; // 잘못된 입력 무시
+    if (!/^\d*\.?\d*$/.test(value)) return;
+
+    // ✅ 소수점 2자리까지만 허용 (USDT)
+    if (value.includes(".")) {
+      const [int, dec] = value.split(".");
+      value = int + "." + dec.slice(0, 2);
     }
 
-    if (Number(value) === 0) {
-      resetInputs();
+    setOutput("ETH");
+    setToken2Amount(value);
+
+    if (value === "" || value === ".") {
+      setToken1Amount("");
       return;
     }
-    setOutput("token1");
-    setToken2Amount(Number(value));
-    setToken1Amount(Number(value) / ratio);
+
+    const num = parseFloat(value);
+    if (!isNaN(num)) setToken1Amount((num / exchangeRate).toFixed(8));
   };
 
   const handleSwap = async () => {
     setIsSwapping(true); // 🔥 스왑 시작할 때 버튼 비활성화
     const token = useAuthStore.getState().token;
-    if (!token || !user) {
+    const address = useAuthStore.getState().address;
+    if (!token || !address) {
       console.error("No token or address provided");
       resetInputs();
-      alert("Please log in again");
+      alert("User not authenticated. Logging out...");
+      useAuthStore.getState().clearAuth();
       handleClose();
       return;
     }
-    const inputToken1Amount = output === "token1" ? 0 : token1Amount;
-    const inputToken2Amount = output === "token2" ? 0 : token2Amount;
+    const inputToken1Amount = output === "ETH" ? 0 : token1Amount;
+    const inputToken2Amount = output === "USDT" ? 0 : token2Amount;
 
     try {
       const res = await fetch("/api/pools/swap", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `${token}`, // 토큰 넣기
+          Authorization: token,
         },
         body: JSON.stringify({
           token1Amount: inputToken1Amount,
@@ -149,8 +133,8 @@ export const DexModal: FC<DexModalProps> = ({ onClose }) => {
   };
 
   const resetInputs = () => {
-    setToken1Amount(0);
-    setToken2Amount(0);
+    setToken1Amount("0");
+    setToken2Amount("0");
     setOutput("");
   };
 
@@ -175,7 +159,7 @@ export const DexModal: FC<DexModalProps> = ({ onClose }) => {
             {/* Refresh Ratio 버튼 */}
 
             <button
-              onClick={getExpectRatio}
+              onClick={refreshExchangeRate}
               disabled={isSwapping}
               className="absolute right-90 top-4 text-l border border-blue-600 rounded text-[383BE9] font-bold px-2 opacity-50"
             >
@@ -196,14 +180,14 @@ export const DexModal: FC<DexModalProps> = ({ onClose }) => {
             <div className="text-white mb-4" style={outline}>
               <p> Current Pool Ratio</p> <br />
               <span className="text-lg font-bold">
-                {ratio > 0 ? (
+                {exchangeRate > 0 ? (
                   <>
                     <div className="flex items-center justify-center gap-4">
-                      <span>Solana</span> 1
+                      <span>ETH</span> 1
                     </div>
                     :
                     <div className="flex items-center justify-center gap-4">
-                      <span>USDT</span>${ratio.toFixed(4)}{" "}
+                      <span>USDT</span>${exchangeRate.toFixed(4)}{" "}
                     </div>
                   </>
                 ) : (
@@ -214,31 +198,33 @@ export const DexModal: FC<DexModalProps> = ({ onClose }) => {
 
             <hr className="border-t-[2px] border-blue-600 mb-6" />
 
-            <p className="m-4">Solana&nbsp;(Balance : {token1Balance})</p>
+            <p className="m-4">ETH&nbsp;(Balance : {token1Balance})</p>
             <input
               type="text"
-              placeholder="Enter Token1 Amount"
+              placeholder="Enter ETH"
               className="w-full mb-4 p-3 rounded-full border-2 border-gray-300 text-black bg-white shadow disabled:bg-gray-300 disabled:cursor-not-allowed"
               value={token1Amount}
+              step="0.00000001"
+              inputMode="decimal"
               onChange={handleToken1Change}
-              disabled={output === "token1"} // 고정
+              disabled={output === "ETH"} // 고정
             />
 
             <p className="m-4">USDT&nbsp;(Balance : {token2Balance})</p>
             <input
               type="text"
-              placeholder="Enter Solana"
+              placeholder="Enter USDT"
               className="w-full mb-4 p-3 rounded-full border-2 border-gray-300 text-black bg-white shadow disabled:bg-gray-300 disabled:cursor-not-allowed"
               value={token2Amount}
               onChange={handleToken2Change}
-              disabled={output === "token2"} // 고정
+              disabled={output === "USDT"} // 고정
             />
 
             <p className="text-white mb-2" style={outline}>
-              Fee ({(feeRate * 100).toFixed(2)}%) :
+              Fee ({(fee * 100).toFixed(2)}%) :
               <span className="font-bold ml-1">
-                {(token2Amount * feeRate).toFixed(3)}{" "}
-                {output === "token2" ? "Solana" : "USDT"}
+                {(parseFloat(token2Amount) * fee).toFixed(3)}{" "}
+                {output === "USDT" ? "ETH" : "USDT"}
               </span>
             </p>
 
@@ -255,10 +241,7 @@ export const DexModal: FC<DexModalProps> = ({ onClose }) => {
               <p>You will receive:</p>
               <br />
               <span className="text-xl font-bold">
-                {output === "token2"
-                  ? token2Amount.toFixed(4)
-                  : token1Amount.toFixed(4)}{" "}
-                {output}
+                {output === "USDT" ? token2Amount : token1Amount} {output}
               </span>
             </div>
           </motion.div>

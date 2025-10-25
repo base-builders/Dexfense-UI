@@ -26,6 +26,7 @@ export async function refreshExchangeRate() {
   if (!data) throw new Error("Failed to fetch expected ratio");
 
   useGameStore.getState().setExchangeRate(data.token2Amount);
+  useGameStore.getState().setFee(data.fee);
   useGameStore.getState().setRatio(`1:${Number(data.token2Amount).toFixed(4)}`);
 }
 
