@@ -30,7 +30,7 @@ export const Navbar = () => {
         </a>
         <div className="relative">
           {!userToken && (
-            <span className="absolute top-[-48px] left-1/2 text-red-800 mt-2 -translate-x-1/2  text-xs px-4 py-2 rounded shadow z-10 whitespace-nowrap">
+            <span className="absolute top-[-48px] left-1/2 text-red-800 mt-2 -translate-x-1/2  text-xs px-4 py-2 rounded shadow whitespace-nowrap">
               Please login to use DEX feature
             </span>
           )}
